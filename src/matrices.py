@@ -22,13 +22,38 @@ class GraphMatrixGenerator:
         self.node_to_index = {node.identifier: i for i, node in enumerate(self._node_list)}
         self._edge_list = list(graph.edges())
     
-    def adjacency_matrix(self):
+    def binary_adjacency_matrix(self):
         """
-        a) Generate adjacency matrix.
-        Entry (i,j) = edge weight or count of edges between nodes i and j.
+        a) Generate binary adjacency matrix.
+        Entry (i,j) = 1 if nodes i and j are adjacent, 0 otherwise.
         
         Returns:
-            list: 2D list representing the adjacency matrix
+            list: 2D list representing the binary adjacency matrix
+        """
+        n = len(self._node_list)
+        matrix = [[0] * n for _ in range(n)]
+        
+        for edge in self._edge_list:
+            i = self.node_to_index[edge.source.identifier]
+            j = self.node_to_index[edge.target.identifier]
+            
+            if edge.edge_type == 'directed':
+                matrix[i][j] = 1
+            else:
+                # Undirected edge - symmetric
+                matrix[i][j] = 1
+                matrix[j][i] = 1
+        
+        return matrix
+    
+    def weighted_adjacency_matrix(self):
+        """
+        b) Generate length/weighted adjacency matrix.
+        Entry (i,j) = edge length/weight if nodes i and j are adjacent, 0 otherwise.
+        For unweighted edges, length is 1.
+        
+        Returns:
+            list: 2D list representing the length adjacency matrix
         """
         n = len(self._node_list)
         matrix = [[0] * n for _ in range(n)]
@@ -41,13 +66,22 @@ class GraphMatrixGenerator:
             value = edge.weight if edge.weight is not None else 1
             
             if edge.edge_type == 'directed':
-                matrix[i][j] += value
+                matrix[i][j] = value
             else:
                 # Undirected edge - symmetric
-                matrix[i][j] += value
-                matrix[j][i] += value
+                matrix[i][j] = value
+                matrix[j][i] = value
         
         return matrix
+    
+    def adjacency_matrix(self):
+        """
+        Legacy method - returns weighted adjacency matrix for backward compatibility.
+        
+        Returns:
+            list: 2D list representing the weighted adjacency matrix
+        """
+        return self.weighted_adjacency_matrix()
     
     def sign_matrix(self):
         """
@@ -76,6 +110,7 @@ class GraphMatrixGenerator:
         """
         c) Generate power of adjacency matrix.
         Used for counting paths of specific length.
+        Uses binary adjacency matrix to count paths, not weighted paths.
         
         Args:
             power (int): Power to raise the adjacency matrix to
@@ -83,7 +118,8 @@ class GraphMatrixGenerator:
         Returns:
             list: 2D list representing the powered matrix
         """
-        adj_matrix = self.adjacency_matrix()
+        # Use binary adjacency matrix for path counting
+        adj_matrix = self.binary_adjacency_matrix()
         n = len(adj_matrix)
         
         if power == 0:
@@ -116,7 +152,10 @@ class GraphMatrixGenerator:
             i = self.node_to_index[edge.source.identifier]
             j = self.node_to_index[edge.target.identifier]
             
-            if edge.edge_type == 'directed':
+            # Check for self-loop (smyčka)
+            if i == j:
+                matrix[i][col] = 2  # Self-loop - uzel je současně zdroj i cíl
+            elif edge.edge_type == 'directed':
                 matrix[i][col] = 1  # Outgoing
                 matrix[j][col] = -1  # Incoming
             else:
@@ -170,48 +209,30 @@ class GraphMatrixGenerator:
     
     def predecessor_matrix(self):
         """
-        f) Generate predecessor matrix for shortest path reconstruction.
+        f) Generate predecessor matrix showing direct predecessors only.
+        Entry (i,j) = direct predecessor of node j when coming from node i.
+        For directed graphs, shows the source node of direct edges.
         
         Returns:
             list: 2D list representing the predecessor matrix
         """
         n = len(self._node_list)
         
-        # Initialize predecessor matrix
+        # Initialize predecessor matrix with None
         pred = [[None] * n for _ in range(n)]
         
-        # Initialize distance matrix with infinity
-        dist = [[math.inf] * n for _ in range(n)]
-        
-        # Distance from node to itself is 0
-        for i in range(n):
-            dist[i][i] = 0
-            pred[i][i] = i
-        
-        # Initialize with edge weights and predecessors
+        # Process all edges to find direct predecessors
         for edge in self._edge_list:
             i = self.node_to_index[edge.source.identifier]
             j = self.node_to_index[edge.target.identifier]
             
-            weight = edge.weight if edge.weight is not None else 1
-            
             if edge.edge_type == 'directed':
-                dist[i][j] = weight
-                pred[i][j] = i
+                # For directed edge A -> B, A is direct predecessor of B
+                pred[i][j] = edge.source.identifier
             else:
-                # Undirected edge - symmetric
-                dist[i][j] = weight
-                dist[j][i] = weight
-                pred[i][j] = i
-                pred[j][i] = j
-        
-        # Floyd-Warshall algorithm with predecessor tracking
-        for k in range(n):
-            for i in range(n):
-                for j in range(n):
-                    if dist[i][k] + dist[k][j] < dist[i][j]:
-                        dist[i][j] = dist[i][k] + dist[k][j]
-                        pred[i][j] = pred[k][j]
+                # For undirected edge A - B, both A and B are predecessors of each other
+                pred[i][j] = edge.source.identifier
+                pred[j][i] = edge.target.identifier
         
         return pred
     
@@ -318,7 +339,9 @@ class GraphMatrixGenerator:
             for i, row in enumerate(matrix):
                 print(f"{labels[i]:>2}", end="")
                 for value in row:
-                    if isinstance(value, float) and math.isinf(value):
+                    if value is None:
+                        print("       -", end="")
+                    elif isinstance(value, float) and math.isinf(value):
                         print("     inf", end="")
                     else:
                         print(f"{value:>8}", end="")
@@ -327,11 +350,44 @@ class GraphMatrixGenerator:
             # Print without labels
             for row in matrix:
                 for value in row:
-                    if isinstance(value, float) and math.isinf(value):
+                    if value is None:
+                        print("       -", end="")
+                    elif isinstance(value, float) and math.isinf(value):
                         print("     inf", end="")
                     else:
                         print(f"{value:>8}", end="")
                 print()
+    
+    def print_incidence_matrix(self, matrix, title, node_labels, edge_labels):
+        """
+        Print incidence matrix with different labels for rows (nodes) and columns (edges).
+        
+        Args:
+            matrix (list): Incidence matrix to print
+            title (str): Title for the matrix
+            node_labels (list): Labels for rows (nodes)
+            edge_labels (list): Labels for columns (edges)
+        """
+        print(f"\n{title}:")
+        print("=" * len(title))
+        
+        # Print column headers (edges)
+        print("  ", end="")
+        for edge_label in edge_labels:
+            print(f"{edge_label:>8}", end="")
+        print()
+        
+        # Print rows with row labels (nodes)
+        for i, row in enumerate(matrix):
+            print(f"{node_labels[i]:>2}", end="")
+            for value in row:
+                if value is None:
+                    print("       -", end="")
+                elif isinstance(value, float) and math.isinf(value):
+                    print("     inf", end="")
+                else:
+                    print(f"{value:>8}", end="")
+            print()
     
     def generate_all_matrices(self):
         """
@@ -343,7 +399,8 @@ class GraphMatrixGenerator:
         node_labels = [node.identifier for node in self._node_list]
         
         matrices = {
-            'adjacency_matrix': self.adjacency_matrix(),
+            'binary_adjacency_matrix': self.binary_adjacency_matrix(),
+            'weighted_adjacency_matrix': self.weighted_adjacency_matrix(),
             'sign_matrix': self.sign_matrix(),
             'incidence_matrix': self.incidence_matrix(),
             'distance_matrix': self.distance_matrix(),
@@ -361,8 +418,11 @@ class GraphMatrixGenerator:
         matrices = self.generate_all_matrices()
         node_labels = matrices['node_labels']
         
-        # Print adjacency matrix
-        self.print_matrix(matrices['adjacency_matrix'], "Adjacency Matrix", node_labels)
+        # Print binary adjacency matrix
+        self.print_matrix(matrices['binary_adjacency_matrix'], "Binary Adjacency Matrix", node_labels)
+        
+        # Print weighted adjacency matrix
+        self.print_matrix(matrices['weighted_adjacency_matrix'], "Weighted Adjacency Matrix", node_labels)
         
         # Print sign matrix
         self.print_matrix(matrices['sign_matrix'], "Sign Matrix", node_labels)
@@ -378,7 +438,10 @@ class GraphMatrixGenerator:
         for i, row in enumerate(incidence_matrix):
             print(f"{inc_node_labels[i]:>2}", end="")
             for value in row:
-                print(f"{value:>8}", end="")
+                if value is None:
+                    print("       -", end="")
+                else:
+                    print(f"{value:>8}", end="")
             print()
         
         # Print distance matrix
@@ -496,26 +559,39 @@ def print_matrix_element(graph, matrix_type, row=None, col=None, power=None):
     
     # Generování matice podle typu
     if matrix_type == 'adjacency':
-        matrix = generator.adjacency_matrix()
-        title = "Matice sousednosti"
+        matrix = generator.weighted_adjacency_matrix()
+        title = "Matice sousednosti (délek)"
+        edge_labels = None
+    elif matrix_type == 'binary_adjacency':
+        matrix = generator.binary_adjacency_matrix()
+        title = "Matice sousednosti (binární)"
+        edge_labels = None
+    elif matrix_type == 'weighted_adjacency':
+        matrix = generator.weighted_adjacency_matrix()
+        title = "Matice sousednosti (délek)"
+        edge_labels = None
     elif matrix_type == 'sign':
         matrix = generator.sign_matrix()
         title = "Znaménková matice"
+        edge_labels = None
     elif matrix_type == 'incidence':
-        matrix = generator.incidence_matrix()
+        matrix, node_labels, edge_labels = generator.incidence_matrix()
         title = "Matice incidence"
     elif matrix_type == 'distance':
         matrix = generator.distance_matrix()
         title = "Matice vzdáleností"
+        edge_labels = None
     elif matrix_type == 'predecessor':
         matrix = generator.predecessor_matrix()
         title = "Matice předchůdců"
+        edge_labels = None
     elif matrix_type == 'adjacency_power':
         if power is None:
             print("Pro adjacency_power matici musí být zadána mocnina!")
             return
         matrix = generator.adjacency_matrix_power(power)
         title = f"Matice sousednosti^{power}"
+        edge_labels = None
     else:
         print(f"Neplatný typ matice: {matrix_type}")
         return
@@ -557,7 +633,11 @@ def print_matrix_element(graph, matrix_type, row=None, col=None, power=None):
     
     # Pokud není zadán ani řádek ani sloupec - vypíše celou matici
     else:
-        generator.print_matrix(matrix, title, node_labels)
+        if matrix_type == 'incidence':
+            # Pro matici incidence použij speciální tisk
+            generator.print_incidence_matrix(matrix, title, node_labels, edge_labels)
+        else:
+            generator.print_matrix(matrix, title, node_labels)
 
 
 def print_adjacency_power_element(graph, power, row=None, col=None):

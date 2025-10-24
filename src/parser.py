@@ -74,7 +74,7 @@ def _parse_node(line, line_num):
         dict: Dictionary with 'identifier' and 'weight' keys
     """
     # Pattern: u identifier [weight];
-    pattern = r'^u\s+(\S+?)\s*(?:\s+([+-]?\d*\.?\d+))?\s*;?\s*$'
+    pattern = r'^u\s+([^;\s]+)\s*(?:\s+([+-]?\d*\.?\d+))?\s*;?\s*$'
     match = re.match(pattern, line)
     
     if not match:
@@ -112,7 +112,7 @@ def _parse_edge(line, line_num, nodes):
         dict: Dictionary with edge data
     """
     # Pattern: h node1 (<|-|>) node2 [weight] [:label];
-    pattern = r'^h\s+(\S+)\s+(<|>|-)\s+(\S+)\s*(?:\s+([+-]?\d*\.?\d+))?\s*(?::(\S+?))?\s*;?\s*$'
+    pattern = r'^h\s+([^;\s]+)\s+(<|>|-)\s+([^;\s]+)\s*(?:\s+([+-]?\d*\.?\d+))?\s*(?::([^;\s]+?))?\s*;?\s*$'
     match = re.match(pattern, line)
     
     if not match:

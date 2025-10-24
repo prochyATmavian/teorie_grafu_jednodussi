@@ -1,10 +1,14 @@
-"""
 === DOSTUPNÉ MATICE V SYSTÉMU ===
 
 1. MATICE SOUSEDNOSTI (Adjacency Matrix)
-   - Klíč: 'adjacency'
-   - Popis: Element [i,j] obsahuje váhu nebo počet hran mezi uzly i a j
-   - Použití: print_matrix_element(graph, 'adjacency')
+   - Klíč: 'adjacency' nebo 'weighted_adjacency'
+   - Popis: Element [i,j] obsahuje délku/váhu hrany mezi uzly i a j (nyní správně označeno jako "délek")
+   - Použití: print_matrix_element(graph, 'adjacency') nebo print_matrix_element(graph, 'weighted_adjacency')
+
+1b. MATICE SOUSEDNOSTI (Binární)
+   - Klíč: 'binary_adjacency'
+   - Popis: Element [i,j] obsahuje 1 pokud jsou uzly sousední, 0 jinak
+   - Použití: print_matrix_element(graph, 'binary_adjacency')
 
 2. ZNAMÉNKOVÁ MATICE (Sign Matrix) 
    - Klíč: 'sign'
@@ -13,8 +17,10 @@
 
 3. MATICE INCIDENCE (Incidence Matrix)
    - Klíč: 'incidence' 
-   - Popis: Řádky = uzly, sloupce = hrany, hodnoty +1/-1/0 podle incidence
+   - Popis: Řádky = uzly, sloupce = hrany, hodnoty +1/-1/0/2 podle incidence
+   - Hodnoty: +1 (odchozí), -1 (příchozí), 0 (neincidentní), 2 (smyčka)
    - Použití: print_matrix_element(graph, 'incidence')
+   - POZNÁMKA: Opraveno a přidáno do matrice_analyze.py (2024)
 
 4. MATICE VZDÁLENOSTÍ (Distance Matrix)
    - Klíč: 'distance'
@@ -75,4 +81,52 @@ export_adjacency_power_to_csv(graph, 4, 'adjacency_power4.csv')
 exporter = GraphExporter(graph)
 exporter.export_specific_matrix('adjacency', 'custom_adjacency.csv')
 exporter.export_adjacency_matrix_power(3, 'custom_power3.csv')
-"""
+
+=== IMPORT Z CSV ===
+
+1. Import obecné matice:
+matrix, row_labels, col_labels = import_matrix_from_csv('matrix.csv', 'matrix_type', has_labels=True)
+
+2. Import konkrétních matic:
+# Matice sousednosti
+matrix, node_labels = import_adjacency_matrix_from_csv('adjacency_matrix.csv', has_labels=True)
+
+# Matice vzdáleností
+matrix, node_labels = import_distance_matrix_from_csv('distance_matrix.csv', has_labels=True)
+
+# Matice incidence
+matrix, node_labels, edge_labels = import_incidence_matrix_from_csv('incidence_matrix.csv', has_labels=True)
+
+# Znaménková matice
+matrix, node_labels = import_sign_matrix_from_csv('sign_matrix.csv', has_labels=True)
+
+# Matice předchůdců
+matrix, node_labels = import_predecessor_matrix_from_csv('predecessor_matrix.csv', has_labels=True)
+
+# Seznam sousednosti
+adj_list = import_adjacency_list_from_csv('adjacency_list.csv')
+
+3. Použití GraphImporter třídy:
+importer = GraphImporter()
+matrix, labels = importer.import_adjacency_matrix_from_csv('matrix.csv', has_labels=True)
+
+4. Validace matic:
+importer = GraphImporter()
+is_valid = importer.validate_matrix_format(matrix, 'adjacency')
+
+=== NEDÁVNÉ ZMĚNY (2024) ===
+
+1. OPRAVA MATICE INCIDENCE:
+   - Přidána do matrice_analyze.py
+   - Opraveno zobrazování s různými labely pro řádky (uzly) a sloupce (hrany)
+   - Správně zobrazuje hodnoty +1/-1/0/2 podle incidence
+   - Přidána podpora pro smyčky (hodnota 2)
+
+2. OPRAVA MATICE DÉLEK:
+   - Přejmenována z "ohodnocená" na "délek" 
+   - Správně označuje délky/váhy hran místo obecného "ohodnocení"
+
+3. OPRAVA PARSERU:
+   - Opraven problém s parsováním středníků v .tg souborech
+   - Graf 09.tg a další nyní fungují správně
+

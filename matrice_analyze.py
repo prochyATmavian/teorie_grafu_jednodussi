@@ -4,15 +4,20 @@ from src.properties import GraphPropertyDetector, print_graph_properties
 from src.neighborhoods import NeighborhoodCalculator, print_node_degrees, print_node_relationships, print_node_neighborhoods
 from src.matrices import GraphMatrixGenerator, print_all_matrices, print_individual_matrices, print_matrix_element, interactive_matrix_explorer, print_adjacency_power_element
 from src.exporter import GraphExporter, export_all_data_to_csv, export_specific_matrix_to_csv, export_adjacency_power_to_csv
-
+from src.csv_operations import (
+    export_graph_matrices_to_csv, export_specific_matrix_to_csv_file, export_adjacency_power_to_csv_file,
+    load_matrix_from_csv, load_adjacency_matrix_from_csv_file, load_distance_matrix_from_csv_file,
+    load_incidence_matrix_from_csv_file, load_adjacency_list_from_csv_file,
+    validate_imported_matrix, compare_matrices,
+    demo_csv_export_import, demo_matrix_operations
+)
 
 #načtení grafu
-data = parse_graph("./grafy/01.tg")
+data = parse_graph("./grafy/03.tg")
 graph = create_graph_from_data(data)
 
 # Získání informací o uzlu A
 print_node_relationships(graph, "A")
-print("\n" + "="*60 + "\n")
 
 #okolí vstupující do uzlu A a práce s ním
 print_node_neighborhoods(graph, "A")
@@ -24,13 +29,16 @@ print("\n" + "="*60 + "\n")
 print("=== Test jednotlivých matic ===")
 
 # Test jednotlivých matic
-print_matrix_element(graph, 'adjacency')
+print_matrix_element(graph, 'binary_adjacency')
+print_matrix_element(graph, 'weighted_adjacency')
 
 print_matrix_element(graph, 'sign', "A")
 
 print_matrix_element(graph, 'distance', "A", "B")
 
 print_matrix_element(graph, 'predecessor')
+
+print_matrix_element(graph, 'incidence')
 
 
 # 1. Export všech dat najednou
@@ -67,12 +75,46 @@ file_path = exporter.export_node_degrees('example_degrees.csv')
 print_adjacency_power_element(graph, 2)
 
 # Konkrétní element - počet cest délky 3 z A do B
-print_adjacency_power_element(graph, 3, 'A', 'B')
+#print_adjacency_power_element(graph, 3, 'A', 'B')
 
 # Řádek pro uzel E v matici^4
-print_adjacency_power_element(graph, 4, row='E')
+#print_adjacency_power_element(graph, 4, row='E')
 
 # Sloupec pro uzel H v matici^5
-print_adjacency_power_element(graph, 5, col='H')
+#print_adjacency_power_element(graph, 5, col='H')
 
 
+print("\n" + "="*60 + "\n")
+print("=== CSV Export/Import Test ===")
+
+# === CSV OPERATIONS ===
+# Všechny CSV funkce jsou nyní v src/csv_operations.py
+
+# Export všech matic do CSV
+# exported_files = export_graph_matrices_to_csv(graph, "example_graph")
+
+# Export konkrétní matice
+# adj_file = export_specific_matrix_to_csv_file(graph, 'adjacency', 'example_adjacency.csv')
+# dist_file = export_specific_matrix_to_csv_file(graph, 'distance', 'example_distance.csv')
+
+# Export mocniny matice sousednosti
+# power_file = export_adjacency_power_to_csv_file(graph, 2, 'example_power2.csv')
+
+# Import matic z CSV
+# matrix, labels = load_adjacency_matrix_from_csv_file('example_adjacency.csv')
+# dist_matrix, dist_labels = load_distance_matrix_from_csv_file('example_distance.csv')
+
+# Validace importovaných matic
+# is_valid = validate_imported_matrix(matrix, 'adjacency')
+
+# Porovnání matic
+# are_same = compare_matrices(original_matrix, imported_matrix, "sousednosti")
+
+# === DEMO FUNCTIONS ===
+# Odkomentujte pro spuštění demo funkcí:
+
+# Kompletní demo export/import workflow
+# demo_csv_export_import(graph)
+
+# Demo práce s načtenými maticemi
+# demo_matrix_operations()

@@ -1,6 +1,6 @@
 """
 Exporter module for graph recognition system.
-Handles CSV export functionality for matrices and graph data.
+Handles CSV export and import functionality for matrices and graph data.
 """
 
 import csv
@@ -489,6 +489,385 @@ class GraphExporter:
             exported_files.append(file_path)
         
         return exported_files
+
+
+class GraphImporter:
+    """Importer for graph data from CSV format."""
+    
+    def __init__(self):
+        """Initialize the importer."""
+        pass
+    
+    def import_matrix_from_csv(self, filepath, matrix_type="matrix", has_labels=True):
+        """
+        Import a matrix from CSV file.
+        
+        Args:
+            filepath (str): Path to the CSV file
+            matrix_type (str): Type of matrix for validation
+            has_labels (bool): Whether the CSV has row/column labels
+            
+        Returns:
+            tuple: (matrix, row_labels, col_labels) or (matrix, None, None) if no labels
+        """
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"CSV file not found: {filepath}")
+        
+        try:
+            with open(filepath, 'r', encoding='utf-8') as csvfile:
+                reader = csv.reader(csvfile)
+                rows = list(reader)
+                
+                if not rows:
+                    raise ValueError("CSV file is empty")
+                
+                if has_labels:
+                    # First row contains column labels
+                    col_labels = rows[0][1:] if len(rows[0]) > 1 else []
+                    # First column of each row contains row labels
+                    row_labels = [row[0] for row in rows[1:]]
+                    # Extract matrix data (skip first row and first column)
+                    matrix_data = [row[1:] for row in rows[1:]]
+                else:
+                    # No labels, just matrix data
+                    matrix_data = rows
+                    row_labels = None
+                    col_labels = None
+                
+                # Convert string values to appropriate types
+                matrix = []
+                for row in matrix_data:
+                    matrix_row = []
+                    for value in row:
+                        if value == "" or value is None:
+                            matrix_row.append(None)
+                        elif value.lower() == "inf":
+                            matrix_row.append(math.inf)
+                        elif value.lower() == "-inf":
+                            matrix_row.append(-math.inf)
+                        else:
+                            try:
+                                # Try to convert to float first
+                                float_val = float(value)
+                                # If it's a whole number, convert to int
+                                if float_val.is_integer():
+                                    matrix_row.append(int(float_val))
+                                else:
+                                    matrix_row.append(float_val)
+                            except ValueError:
+                                # If conversion fails, keep as string
+                                matrix_row.append(value)
+                    matrix.append(matrix_row)
+                
+                print(f"Matrix imported from: {filepath}")
+                print(f"Matrix size: {len(matrix)}x{len(matrix[0]) if matrix else 0}")
+                if row_labels:
+                    print(f"Row labels: {row_labels}")
+                if col_labels:
+                    print(f"Column labels: {col_labels}")
+                
+                return matrix, row_labels, col_labels
+                
+        except Exception as e:
+            print(f"Error importing matrix from CSV: {e}")
+            raise
+    
+    def import_adjacency_matrix_from_csv(self, filepath, has_labels=True):
+        """
+        Import adjacency matrix from CSV file.
+        
+        Args:
+            filepath (str): Path to the CSV file
+            has_labels (bool): Whether the CSV has row/column labels
+            
+        Returns:
+            tuple: (matrix, node_labels)
+        """
+        matrix, row_labels, col_labels = self.import_matrix_from_csv(filepath, "adjacency", has_labels)
+        
+        # Validate that it's a square matrix
+        if len(matrix) != len(matrix[0]):
+            raise ValueError("Adjacency matrix must be square")
+        
+        # Validate labels consistency
+        if has_labels and row_labels != col_labels:
+            print("Warning: Row and column labels don't match, using row labels")
+        
+        node_labels = row_labels if row_labels else col_labels
+        return matrix, node_labels
+    
+    def import_distance_matrix_from_csv(self, filepath, has_labels=True):
+        """
+        Import distance matrix from CSV file.
+        
+        Args:
+            filepath (str): Path to the CSV file
+            has_labels (bool): Whether the CSV has row/column labels
+            
+        Returns:
+            tuple: (matrix, node_labels)
+        """
+        matrix, row_labels, col_labels = self.import_matrix_from_csv(filepath, "distance", has_labels)
+        
+        # Validate that it's a square matrix
+        if len(matrix) != len(matrix[0]):
+            raise ValueError("Distance matrix must be square")
+        
+        # Validate diagonal elements are 0
+        for i in range(len(matrix)):
+            if matrix[i][i] != 0:
+                print(f"Warning: Diagonal element [{i}][{i}] is not 0: {matrix[i][i]}")
+        
+        node_labels = row_labels if row_labels else col_labels
+        return matrix, node_labels
+    
+    def import_incidence_matrix_from_csv(self, filepath, has_labels=True):
+        """
+        Import incidence matrix from CSV file.
+        
+        Args:
+            filepath (str): Path to the CSV file
+            has_labels (bool): Whether the CSV has row/column labels
+            
+        Returns:
+            tuple: (matrix, node_labels, edge_labels)
+        """
+        matrix, row_labels, col_labels = self.import_matrix_from_csv(filepath, "incidence", has_labels)
+        
+        node_labels = row_labels
+        edge_labels = col_labels
+        
+        return matrix, node_labels, edge_labels
+    
+    def import_sign_matrix_from_csv(self, filepath, has_labels=True):
+        """
+        Import sign matrix from CSV file.
+        
+        Args:
+            filepath (str): Path to the CSV file
+            has_labels (bool): Whether the CSV has row/column labels
+            
+        Returns:
+            tuple: (matrix, node_labels)
+        """
+        matrix, row_labels, col_labels = self.import_matrix_from_csv(filepath, "sign", has_labels)
+        
+        # Validate that it's a square matrix
+        if len(matrix) != len(matrix[0]):
+            raise ValueError("Sign matrix must be square")
+        
+        # Validate values are -1, 0, or 1
+        for i, row in enumerate(matrix):
+            for j, value in enumerate(row):
+                if value not in [-1, 0, 1]:
+                    print(f"Warning: Sign matrix element [{i}][{j}] is not -1, 0, or 1: {value}")
+        
+        node_labels = row_labels if row_labels else col_labels
+        return matrix, node_labels
+    
+    def import_predecessor_matrix_from_csv(self, filepath, has_labels=True):
+        """
+        Import predecessor matrix from CSV file.
+        
+        Args:
+            filepath (str): Path to the CSV file
+            has_labels (bool): Whether the CSV has row/column labels
+            
+        Returns:
+            tuple: (matrix, node_labels)
+        """
+        matrix, row_labels, col_labels = self.import_matrix_from_csv(filepath, "predecessor", has_labels)
+        
+        # Validate that it's a square matrix
+        if len(matrix) != len(matrix[0]):
+            raise ValueError("Predecessor matrix must be square")
+        
+        node_labels = row_labels if row_labels else col_labels
+        return matrix, node_labels
+    
+    def import_adjacency_list_from_csv(self, filepath):
+        """
+        Import adjacency list from CSV file.
+        
+        Args:
+            filepath (str): Path to the CSV file
+            
+        Returns:
+            dict: Adjacency list dictionary
+        """
+        if not os.path.exists(filepath):
+            raise FileNotFoundError(f"CSV file not found: {filepath}")
+        
+        try:
+            with open(filepath, 'r', encoding='utf-8') as csvfile:
+                reader = csv.reader(csvfile)
+                rows = list(reader)
+                
+                if not rows:
+                    raise ValueError("CSV file is empty")
+                
+                # First row should be header
+                header = rows[0]
+                if header[0].lower() != "node":
+                    print("Warning: Expected 'Node' as first column header")
+                
+                adj_list = {}
+                for row in rows[1:]:
+                    if not row:
+                        continue
+                    
+                    node_id = row[0]
+                    neighbors = []
+                    
+                    # Process neighbor columns
+                    for i in range(1, len(row)):
+                        if row[i] and row[i].strip():
+                            neighbors.append(row[i].strip())
+                    
+                    adj_list[node_id] = neighbors
+                
+                print(f"Adjacency list imported from: {filepath}")
+                print(f"Number of nodes: {len(adj_list)}")
+                
+                return adj_list
+                
+        except Exception as e:
+            print(f"Error importing adjacency list from CSV: {e}")
+            raise
+    
+    def validate_matrix_format(self, matrix, matrix_type):
+        """
+        Validate matrix format based on type.
+        
+        Args:
+            matrix (list): Matrix to validate
+            matrix_type (str): Type of matrix
+            
+        Returns:
+            bool: True if valid, False otherwise
+        """
+        if not matrix:
+            return False
+        
+        # Check if all rows have the same length
+        row_lengths = [len(row) for row in matrix]
+        if len(set(row_lengths)) > 1:
+            print(f"Error: Matrix rows have different lengths: {row_lengths}")
+            return False
+        
+        # Type-specific validations
+        if matrix_type in ['adjacency', 'distance', 'sign', 'predecessor']:
+            # Should be square
+            if len(matrix) != len(matrix[0]):
+                print(f"Error: {matrix_type} matrix must be square")
+                return False
+        
+        return True
+
+
+def import_matrix_from_csv(filepath, matrix_type="matrix", has_labels=True):
+    """
+    Convenience function to import a matrix from CSV.
+    
+    Args:
+        filepath (str): Path to the CSV file
+        matrix_type (str): Type of matrix
+        has_labels (bool): Whether the CSV has row/column labels
+        
+    Returns:
+        tuple: (matrix, row_labels, col_labels)
+    """
+    importer = GraphImporter()
+    return importer.import_matrix_from_csv(filepath, matrix_type, has_labels)
+
+
+def import_adjacency_matrix_from_csv(filepath, has_labels=True):
+    """
+    Convenience function to import adjacency matrix from CSV.
+    
+    Args:
+        filepath (str): Path to the CSV file
+        has_labels (bool): Whether the CSV has row/column labels
+        
+    Returns:
+        tuple: (matrix, node_labels)
+    """
+    importer = GraphImporter()
+    return importer.import_adjacency_matrix_from_csv(filepath, has_labels)
+
+
+def import_distance_matrix_from_csv(filepath, has_labels=True):
+    """
+    Convenience function to import distance matrix from CSV.
+    
+    Args:
+        filepath (str): Path to the CSV file
+        has_labels (bool): Whether the CSV has row/column labels
+        
+    Returns:
+        tuple: (matrix, node_labels)
+    """
+    importer = GraphImporter()
+    return importer.import_distance_matrix_from_csv(filepath, has_labels)
+
+
+def import_incidence_matrix_from_csv(filepath, has_labels=True):
+    """
+    Convenience function to import incidence matrix from CSV.
+    
+    Args:
+        filepath (str): Path to the CSV file
+        has_labels (bool): Whether the CSV has row/column labels
+        
+    Returns:
+        tuple: (matrix, node_labels, edge_labels)
+    """
+    importer = GraphImporter()
+    return importer.import_incidence_matrix_from_csv(filepath, has_labels)
+
+
+def import_sign_matrix_from_csv(filepath, has_labels=True):
+    """
+    Convenience function to import sign matrix from CSV.
+    
+    Args:
+        filepath (str): Path to the CSV file
+        has_labels (bool): Whether the CSV has row/column labels
+        
+    Returns:
+        tuple: (matrix, node_labels)
+    """
+    importer = GraphImporter()
+    return importer.import_sign_matrix_from_csv(filepath, has_labels)
+
+
+def import_predecessor_matrix_from_csv(filepath, has_labels=True):
+    """
+    Convenience function to import predecessor matrix from CSV.
+    
+    Args:
+        filepath (str): Path to the CSV file
+        has_labels (bool): Whether the CSV has row/column labels
+        
+    Returns:
+        tuple: (matrix, node_labels)
+    """
+    importer = GraphImporter()
+    return importer.import_predecessor_matrix_from_csv(filepath, has_labels)
+
+
+def import_adjacency_list_from_csv(filepath):
+    """
+    Convenience function to import adjacency list from CSV.
+    
+    Args:
+        filepath (str): Path to the CSV file
+        
+    Returns:
+        dict: Adjacency list dictionary
+    """
+    importer = GraphImporter()
+    return importer.import_adjacency_list_from_csv(filepath)
 
 
 def export_matrix_to_csv(graph, matrix, filename="matrix.csv", matrix_type="matrix", row_labels=None, col_labels=None):

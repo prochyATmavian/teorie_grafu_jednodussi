@@ -223,6 +223,8 @@ class Graph:
     def get_neighbors(self, node_identifier):
         """
         Get all neighbors of a node.
+        For directed graphs, this returns the union of predecessors and successors.
+        For undirected graphs, this returns all adjacent nodes.
         
         Args:
             node_identifier (str): Identifier of the node
@@ -233,13 +235,27 @@ class Graph:
         if node_identifier not in self._nodes:
             return []
         
-        neighbors = []
-        for edge in self._adjacency[node_identifier]:
-            other = edge.other_end(self._nodes[node_identifier])
-            if other not in neighbors:
-                neighbors.append(other)
-        
-        return neighbors
+        # For directed graphs, neighbors are union of predecessors and successors
+        if self.is_directed():
+            predecessors = self.get_predecessors(node_identifier)
+            successors = self.get_successors(node_identifier)
+            
+            # Combine and remove duplicates
+            neighbors = predecessors.copy()
+            for successor in successors:
+                if successor not in neighbors:
+                    neighbors.append(successor)
+            
+            return neighbors
+        else:
+            # For undirected graphs, use adjacency list
+            neighbors = []
+            for edge in self._adjacency[node_identifier]:
+                other = edge.other_end(self._nodes[node_identifier])
+                if other not in neighbors:
+                    neighbors.append(other)
+            
+            return neighbors
     
     def get_incident_edges(self, node_identifier):
         """
