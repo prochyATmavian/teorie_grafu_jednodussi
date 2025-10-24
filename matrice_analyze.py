@@ -13,22 +13,58 @@ from src.csv_operations import (
 )
 
 #načtení grafu
-data = parse_graph("./grafy/03.tg")
+data = parse_graph("./grafy/veryBigGraph.tg")
 graph = create_graph_from_data(data)
 
-# Získání informací o uzlu A
-print_node_relationships(graph, "A")
+# Získání informací o uzlu node0
+print_node_relationships(graph, "node1")
+#print_node_relationships(graph, "A")
 
-#okolí vstupující do uzlu A a práce s ním
-print_node_neighborhoods(graph, "A")
+#okolí vstupující do uzlu node0 a práce s ním
+print_node_neighborhoods(graph, "node0")
 
-#vlastnosti grafu
-print_graph_properties(graph)
+#vlastnosti grafu - jednotlivě pro měření výkonu
+import time
+
+detector = GraphPropertyDetector(graph)
+
+print("=== Měření výkonu vlastností grafu ===")
+print(f"Graf má {graph.node_count()} uzlů a {graph.edge_count()} hran")
+print()
+
+properties_to_test = [
+    ("a) ohodnocený (weighted)", detector.is_weighted),
+    ("b) orientovaný (directed)", detector.is_directed),
+    ("c) silně souvislý (strongly connected)", detector.is_strongly_connected),
+    ("c) slabě souvislý (weakly connected)", detector.is_weakly_connected),
+    ("d) prostý (simple - no multi-edges)", detector.is_simple_no_multiedges),
+    ("e) jednoduchý (simple - no loops or multi-edges)", detector.is_simple),
+    #("f) rovinný (planar)", detector.is_planar),
+    #("g) konečný (finite)", detector.is_finite),
+    ("h) úplný (complete)", detector.is_complete),
+    ("i) regulární (regular)", detector.is_regular),
+    ("j) bipartitní (bipartite)", detector.is_bipartite)
+]
+
+for prop_name, prop_func in properties_to_test:
+    start_time = time.time()
+    try:
+        result = prop_func()
+        end_time = time.time()
+        duration = end_time - start_time
+        status = "YES" if result else "NO"
+        print(f"{prop_name}: {status} (čas: {duration:.4f}s)")
+    except Exception as e:
+        end_time = time.time()
+        duration = end_time - start_time
+        print(f"{prop_name}: CHYBA - {e} (čas: {duration:.4f}s)")
+
 
 print("\n" + "="*60 + "\n")
 print("=== Test jednotlivých matic ===")
 
 # Test jednotlivých matic
+"""
 print_matrix_element(graph, 'binary_adjacency')
 print_matrix_element(graph, 'weighted_adjacency')
 
@@ -39,7 +75,7 @@ print_matrix_element(graph, 'distance', "A", "B")
 print_matrix_element(graph, 'predecessor')
 
 print_matrix_element(graph, 'incidence')
-
+"""
 
 # 1. Export všech dat najednou
 """
@@ -72,7 +108,7 @@ file_path = exporter.export_node_degrees('example_degrees.csv')
 
 
 # Celá matice sousednosti^2
-print_adjacency_power_element(graph, 2)
+#print_adjacency_power_element(graph, 2)
 
 # Konkrétní element - počet cest délky 3 z A do B
 #print_adjacency_power_element(graph, 3, 'A', 'B')
