@@ -1,0 +1,11 @@
+u A;
+u B;
+u D;
+u E;
+u F;
+h A - F 5;
+h A - D 1;
+h B - F 4;
+h B - D 2;
+h B - E 4;
+h D - E 3;

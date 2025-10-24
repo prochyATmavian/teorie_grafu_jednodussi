@@ -1,0 +1,17 @@
+tento dokument popisuje, jak pracovat s touto aplikací
+
+#from src.parser import parse_graph
+načtení parseru do virtuálního prostředí
+
+#data = parse_graph("./grafy/01.tg")
+uložení naparovaného grafu do promenné
+
+#from src.graph import create_graph_from_data
+načtení inicializátoru grafu
+
+#graph = create_graph_from_data(data)
+vytvoření grafu v paměti
+
+#from src.properties import GraphPropertyDetector, print_graph_properties
+načtení tříd pro práci s vlastnostmi grafu
+

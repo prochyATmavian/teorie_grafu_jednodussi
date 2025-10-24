@@ -1,0 +1,10 @@
+u A;
+u C;
+u D;
+u E;
+h A > A :h3;
+h A > D :h1;
+h D > E :h2;
+h E > C :h5;
+h E > C :h6;
+h C > A :h4;
